@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoResearch — AI 自主研究系统</title>
+  <style>
+    :root {
+      --bg: #0a0c0f;
+      --surface: #0f1318;
+      --border: #1e2530;
+      --green: #00ff88;
+      --green-dim: #00cc6a;
+      --green-glow: rgba(0, 255, 136, 0.12);
+      --blue: #4a9eff;
+      --text: #e8edf5;
+      --text-muted: #6b7a8d;
+      --text-dim: #3d4a5c;
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 56px;
+      background: rgba(10, 12, 15, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-brand {
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--green);
+      letter-spacing: 0.05em;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: transparent;
+      border: 1px solid var(--green);
+      border-radius: 4px;
+      color: var(--green) !important;
+      font-size: 0.82rem !important;
+      font-family: var(--mono);
+      transition: background 0.2s !important;
+    }
+
+    .nav-cta:hover { background: var(--green-glow) !important; }
+
+    /* ─── HERO ─── */
+    .hero {
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 2rem;
+      padding-top: 56px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 255, 136, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 80% 60%, rgba(74, 158, 255, 0.04) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.3;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0.8rem;
+      background: rgba(0, 255, 136, 0.08);
+      border: 1px solid rgba(0, 255, 136, 0.25);
+      border-radius: 100px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--green);
+      letter-spacing: 0.08em;
+      margin-bottom: 2rem;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.2s forwards;
+    }
+
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero-title {
+      font-size: clamp(3rem, 8vw, 6.5rem);
+      font-weight: 800;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.7s ease 0.35s forwards;
+    }
+
+    .hero-title .accent { color: var(--green); }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+      opacity: 0;
+      animation: fadeUp 0.7s ease 0.5s forwards;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 4rem;
+      opacity: 0;
+      animation: fadeUp 0.7s ease 0.65s forwards;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.75rem;
+      background: var(--green);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 32px rgba(0, 255, 136, 0.3);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.75rem;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-muted);
+      background: rgba(255,255,255,0.03);
+    }
+
+    /* Terminal */
+    .terminal {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      max-width: 680px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.8s forwards;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,255,136,0.05);
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: #161b22;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+
+    .terminal-title {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    .terminal-body {
+      padding: 1.25rem 1.5rem;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.8;
+    }
+
+    .t-comment { color: #4a5568; }
+    .t-prompt { color: var(--green); }
+    .t-cmd { color: var(--text); }
+    .t-out { color: #6b7a8d; }
+    .t-success { color: var(--green); }
+    .t-info { color: var(--blue); }
+    .t-warn { color: #f6c90e; }
+
+    .cursor {
+      display: inline-block;
+      width: 8px; height: 14px;
+      background: var(--green);
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* ─── SECTION BASE ─── */
+    section {
+      padding: 6rem 2rem;
+    }
+
+    .section-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 560px;
+      line-height: 1.7;
+    }
+
+    /* ─── HOW IT WORKS ─── */
+    .how {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .how-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      margin-top: 3.5rem;
+    }
+
+    .how-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .step {
+      display: flex;
+      gap: 1.25rem;
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    .step:last-child { border-bottom: none; }
+
+    .step-num {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--green);
+      font-weight: 700;
+      min-width: 28px;
+      padding-top: 0.15rem;
+      letter-spacing: 0.05em;
+    }
+
+    .step-content h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+
+    .step-content p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .how-visual {
+      position: relative;
+    }
+
+    .loop-diagram {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .loop-diagram::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0,255,136,0.04) 0%, transparent 70%);
+    }
+
+    .loop-nodes {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .loop-node {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.9rem 1rem;
+      border-radius: 8px;
+      transition: background 0.2s;
+      position: relative;
+    }
+
+    .loop-node:hover { background: rgba(255,255,255,0.03); }
+
+    .loop-node-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .icon-green { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.2); }
+    .icon-blue { background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.2); }
+    .icon-yellow { background: rgba(246,201,14,0.1); border: 1px solid rgba(246,201,14,0.2); }
+    .icon-red { background: rgba(255,95,87,0.1); border: 1px solid rgba(255,95,87,0.2); }
+
+    .loop-node-text h4 {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .loop-node-text p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .loop-arrow {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      padding: 0.1rem 0;
+      font-family: var(--mono);
+    }
+
+    .loop-badge {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--green);
+      background: rgba(0,255,136,0.08);
+      border: 1px solid rgba(0,255,136,0.2);
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+    }
+
+    /* ─── FEATURES ─── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 3.5rem;
+    }
+
+    .feature-card {
+      background: var(--bg);
+      padding: 2rem;
+      transition: background 0.2s;
+    }
+
+    .feature-card:hover { background: var(--surface); }
+
+    .feature-icon {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .feature-tag {
+      display: inline-block;
+      margin-top: 0.75rem;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--green);
+      background: rgba(0,255,136,0.08);
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+    }
+
+    /* ─── FILES ─── */
+    .files {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .files-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 4rem;
+      align-items: start;
+      margin-top: 3.5rem;
+    }
+
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .file-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1.25rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .file-item:hover, .file-item.active {
+      border-color: rgba(0,255,136,0.3);
+      background: rgba(0,255,136,0.03);
+    }
+
+    .file-icon {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .file-info h4 {
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--green);
+      margin-bottom: 0.25rem;
+    }
+
+    .file-info p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .file-badge {
+      margin-left: auto;
+      align-self: flex-start;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .badge-fixed { background: rgba(74,158,255,0.1); color: var(--blue); border: 1px solid rgba(74,158,255,0.2); }
+    .badge-agent { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
+    .badge-human { background: rgba(246,201,14,0.1); color: #f6c90e; border: 1px solid rgba(246,201,14,0.2); }
+
+    .code-preview {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      position: sticky;
+      top: 72px;
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: #161b22;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-filename {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-left: 0.25rem;
+    }
+
+    .code-body {
+      padding: 1.5rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.9;
+      overflow-x: auto;
+    }
+
+    .c-comment { color: #4a5568; }
+    .c-key { color: #ff7b72; }
+    .c-str { color: #a5d6ff; }
+    .c-num { color: #79c0ff; }
+    .c-fn { color: #d2a8ff; }
+    .c-var { color: var(--text); }
+    .c-op { color: var(--text-muted); }
+
+    /* ─── QUICKSTART ─── */
+    .quickstart-steps {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      margin-top: 3.5rem;
+    }
+
+    .qs-step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .qs-step:hover { border-color: rgba(0,255,136,0.2); }
+
+    .qs-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .qs-num {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: rgba(0,255,136,0.1);
+      border: 1px solid rgba(0,255,136,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .qs-header h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .qs-body {
+      padding: 1rem 1.25rem;
+    }
+
+    .qs-body p {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      line-height: 1.6;
+    }
+
+    .code-block {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--text);
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .code-block .prompt { color: var(--green); user-select: none; }
+    .code-block .comment { color: #4a5568; }
+
+    /* ─── FORKS ─── */
+    .forks-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-top: 3rem;
+    }
+
+    .fork-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s, transform 0.15s;
+      display: block;
+    }
+
+    .fork-card:hover {
+      border-color: rgba(0,255,136,0.25);
+      transform: translateY(-2px);
+    }
+
+    .fork-platform {
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .fork-card h4 {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--green);
+      margin-bottom: 0.35rem;
+    }
+
+    .fork-card p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* ─── QUOTE ─── */
+    .quote-section {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .quote-block {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+      padding: 2rem 0;
+    }
+
+    .quote-mark {
+      font-size: 4rem;
+      line-height: 1;
+      color: var(--green);
+      opacity: 0.3;
+      font-family: Georgia, serif;
+      margin-bottom: 1rem;
+    }
+
+    .quote-text {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      line-height: 1.7;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-bottom: 1.5rem;
+    }
+
+    .quote-author {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--green);
+    }
+
+    /* ─── METRIC ─── */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 3.5rem;
+    }
+
+    .metric {
+      background: var(--bg);
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      font-family: var(--mono);
+      color: var(--green);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* ─── CTA ─── */
+    .cta-section {
+      text-align: center;
+      padding: 8rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(0,255,136,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-section h2 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+
+    .cta-section p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+
+    .cta-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      position: relative;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-brand {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .footer-brand span { color: var(--green); }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text-muted); }
+
+    .footer-copy {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .how-grid, .files-layout { grid-template-columns: 1fr; gap: 2.5rem; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .forks-grid { grid-template-columns: repeat(2, 1fr); }
+      .quickstart-steps { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+
+    @media (max-width: 600px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .forks-grid { grid-template-columns: 1fr 1fr; }
+      section { padding: 4rem 1.25rem; }
+      .hero { padding: 0 1.25rem; padding-top: 56px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-brand">⬡ AutoResearch</a>
+  <ul class="nav-links">
+    <li><a href="#how">工作原理</a></li>
+    <li><a href="#features">核心特性</a></li>
+    <li><a href="#files">文件结构</a></li>
+    <li><a href="#quickstart">快速开始</a></li>
+    <li><a href="#forks">社区分支</a></li>
+  </ul>
+  <a href="https://github.com/karpathy/autoresearch" target="_blank" class="nav-links nav-cta">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+    GitHub
+  </a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      Karpathy · 2026年3月 · MIT 开源
+    </div>
+    <h1 class="hero-title">
+      AI 自主<br><span class="accent">研究系统</span>
+    </h1>
+    <p class="hero-subtitle">
+      给 AI 智能体一个真实的 LLM 训练环境，让它整夜自主实验。
+      修改代码、训练5分钟、检验结果、保留或丢弃，循环往复。
+      早晨醒来，你将得到一份完整的实验日志和一个更好的模型。
+    </p>
+    <div class="hero-actions">
+      <a href="#quickstart" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        立即开始
+      </a>
+      <a href="https://github.com/karpathy/autoresearch" target="_blank" class="btn-secondary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        查看源码
+      </a>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="dot dot-r"></span>
+        <span class="dot dot-y"></span>
+        <span class="dot dot-g"></span>
+        <span class="terminal-title">autoresearch — experiment loop</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-comment"># 实验 #47 开始 — 智能体正在修改 train.py</span></div>
+        <div><span class="t-prompt">$</span> <span class="t-cmd">uv run train.py</span></div>
+        <div><span class="t-out">编译 CUDA 内核... 完成</span></div>
+        <div><span class="t-out">加载数据集... 8192 tokens/batch</span></div>
+        <div><span class="t-info">训练中 [████████████░░░░] 72% — 3m 36s</span></div>
+        <div><span class="t-out">val_bpb: 1.2847 → </span><span class="t-success">1.2631 ↓ 改善 +1.68%</span></div>
+        <div><span class="t-success">✓ 保留变更 — 提交实验日志</span></div>
+        <div><span class="t-warn">智能体: 尝试增大 DEPTH=10 并调整 Muon 学习率...</span></div>
+        <div><span class="t-prompt">$</span> <span class="cursor"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="section-inner">
+    <div class="section-label">工作原理</div>
+    <h2 class="section-title reveal">让 AI 替你做研究</h2>
+    <p class="section-desc reveal">你不再直接修改 Python 文件，而是编写 <code style="color:var(--green);font-family:var(--mono)">program.md</code>——一份给 AI 智能体的指令文档，构建你的自主研究组织。</p>
+
+    <div class="how-grid">
+      <div class="how-steps reveal">
+        <div class="step">
+          <span class="step-num">01</span>
+          <div class="step-content">
+            <h3>配置研究指令</h3>
+            <p>编写 <code style="font-family:var(--mono);color:var(--green)">program.md</code>，定义研究目标、约束条件和探索方向。这是你与 AI 研究员沟通的唯一接口。</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">02</span>
+          <div class="step-content">
+            <h3>智能体修改训练代码</h3>
+            <p>AI 智能体读取指令，自主修改 <code style="font-family:var(--mono);color:var(--green)">train.py</code>——架构、超参数、优化器、批大小，一切皆可调整。</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">03</span>
+          <div class="step-content">
+            <h3>固定5分钟训练预算</h3>
+            <p>每次实验精确运行5分钟（挂钟时间），确保跨实验可比性。每小时约12次实验，整夜约100次。</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">04</span>
+          <div class="step-content">
+            <h3>评估并决策</h3>
+            <p>以 <code style="font-family:var(--mono);color:var(--green)">val_bpb</code>（验证集比特/字节）为指标，越低越好。智能体自动判断是否保留变更，继续下一轮迭代。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="how-visual reveal">
+        <div class="loop-diagram">
+          <span class="loop-badge">∞ 自主循环</span>
+          <div class="loop-nodes">
+            <div class="loop-node">
+              <div class="loop-node-icon icon-yellow">📋</div>
+              <div class="loop-node-text">
+                <h4>读取 program.md</h4>
+                <p>解析研究指令与约束</p>
+              </div>
+            </div>
+            <div class="loop-arrow">↓</div>
+            <div class="loop-node">
+              <div class="loop-node-icon icon-blue">✏️</div>
+              <div class="loop-node-text">
+                <h4>修改 train.py</h4>
+                <p>调整架构/超参/优化器</p>
+              </div>
+            </div>
+            <div class="loop-arrow">↓</div>
+            <div class="loop-node">
+              <div class="loop-node-icon icon-green">⚡</div>
+              <div class="loop-node-text">
+                <h4>训练 5 分钟</h4>
+                <p>固定时间预算，公平比较</p>
+              </div>
+            </div>
+            <div class="loop-arrow">↓</div>
+            <div class="loop-node">
+              <div class="loop-node-icon icon-red">📊</div>
+              <div class="loop-node-text">
+                <h4>评估 val_bpb</h4>
+                <p>保留改善 / 丢弃退步</p>
+              </div>
+            </div>
+            <div class="loop-arrow" style="color:var(--green)">↺ 重复</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- METRICS -->
+<section>
+  <div class="section-inner">
+    <div class="metrics reveal">
+      <div class="metric">
+        <div class="metric-value">~12x</div>
+        <div class="metric-label">每小时实验次数</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value">~100x</div>
+        <div class="metric-label">整夜实验次数</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value">5 min</div>
+        <div class="metric-label">固定训练时间预算</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-label">核心特性</div>
+    <h2 class="section-title reveal">为自主研究而设计</h2>
+    <p class="section-desc reveal">极简主义设计哲学——只有三个核心文件，一个指标，一块 GPU。</p>
+
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>单文件修改范围</h3>
+        <p>智能体只修改 <code style="font-family:var(--mono);color:var(--green)">train.py</code>，保持变更范围可控、差异可审查，避免失控的代码扩散。</p>
+        <span class="feature-tag">可控性</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⏱️</div>
+        <h3>固定时间预算</h3>
+        <p>无论模型大小、批大小如何变化，训练始终精确运行5分钟。实验结果直接可比，无需额外归一化。</p>
+        <span class="feature-tag">公平比较</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📐</div>
+        <h3>平台自适应优化</h3>
+        <p>自动为你的具体硬件找到最优模型配置。在 H100 上的最优解与在 RTX 4090 上的不同——这正是设计意图。</p>
+        <span class="feature-tag">硬件感知</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔬</div>
+        <h3>真实 LLM 训练</h3>
+        <p>基于 nanochat 的简化单 GPU 实现，包含完整 GPT 模型、Muon + AdamW 优化器和训练循环。不是玩具，是真实研究。</p>
+        <span class="feature-tag">生产级</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>程序化研究组织</h3>
+        <p>通过编写 <code style="font-family:var(--mono);color:var(--green)">program.md</code> 来"编程"你的研究组织。随时间迭代，找到最快的研究进展路径。</p>
+        <span class="feature-tag">可迭代</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔌</div>
+        <h3>自包含，零外部依赖</h3>
+        <p>除 PyTorch 和少量小型包外无其他依赖。无分布式训练，无复杂配置。一块 GPU，一个文件，一个指标。</p>
+        <span class="feature-tag">极简</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FILES -->
+<section class="files" id="files">
+  <div class="section-inner">
+    <div class="section-label">文件结构</div>
+    <h2 class="section-title reveal">三个文件，一切皆备</h2>
+    <p class="section-desc reveal">刻意保持极简。每个文件都有明确的职责边界。</p>
+
+    <div class="files-layout">
+      <div class="file-list reveal">
+        <div class="file-item active">
+          <span class="file-icon">🔧</span>
+          <div class="file-info">
+            <h4>prepare.py</h4>
+            <p>固定常量、一次性数据准备（下载训练数据、训练 BPE 分词器）和运行时工具（数据加载器、评估）。</p>
+          </div>
+          <span class="file-badge badge-fixed">不可修改</span>
+        </div>
+        <div class="file-item">
+          <span class="file-icon">🤖</span>
+          <div class="file-info">
+            <h4>train.py</h4>
+            <p>智能体唯一可编辑的文件。包含完整 GPT 模型、Muon + AdamW 优化器和训练循环。架构、超参、优化器——一切皆可调。</p>
+          </div>
+          <span class="file-badge badge-agent">智能体修改</span>
+        </div>
+        <div class="file-item">
+          <span class="file-icon">📋</span>
+          <div class="file-info">
+            <h4>program.md</h4>
+            <p>单个智能体的基线指令。将你的智能体指向这里，让它自主运行。这是人类与 AI 研究员之间的唯一接口。</p>
+          </div>
+          <span class="file-badge badge-human">人类编写</span>
+        </div>
+      </div>
+
+      <div class="code-preview reveal">
+        <div class="code-header">
+          <span class="dot dot-r"></span>
+          <span class="dot dot-y"></span>
+          <span class="dot dot-g"></span>
+          <span class="code-filename">train.py — 智能体可修改区域</span>
+        </div>
+        <div class="code-body">
+          <div><span class="c-comment"># ── 模型超参数 (智能体可调整) ──</span></div>
+          <div><span class="c-key">DEPTH</span> <span class="c-op">=</span> <span class="c-num">8</span>          <span class="c-comment"># 层数 (主要复杂度旋钮)</span></div>
+          <div><span class="c-key">WINDOW_PATTERN</span> <span class="c-op">=</span> <span class="c-str">"SSSL"</span>  <span class="c-comment"># 注意力模式</span></div>
+          <div><span class="c-key">TOTAL_BATCH_SIZE</span> <span class="c-op">=</span> <span class="c-num">2**17</span>  <span class="c-comment"># ~131K tokens</span></div>
+          <div>&nbsp;</div>
+          <div><span class="c-comment"># ── 优化器配置 ──</span></div>
+          <div><span class="c-key">optimizer</span> <span class="c-op">=</span> <span class="c-fn">Muon</span><span class="c-op">(</span></div>
+          <div>  <span class="c-var">params</span><span class="c-op">=</span><span class="c-var">model.parameters</span><span class="c-op">(),</span></div>
+          <div>  <span class="c-var">lr</span><span class="c-op">=</span><span class="c-num">0.02</span><span class="c-op">,</span></div>
+          <div>  <span class="c-var">momentum</span><span class="c-op">=</span><span class="c-num">0.95</span></div>
+          <div><span class="c-op">)</span></div>
+          <div>&nbsp;</div>
+          <div><span class="c-comment"># ── 训练循环 (5分钟固定预算) ──</span></div>
+          <div><span class="c-key">while</span> <span class="c-fn">elapsed</span><span class="c-op">() &lt;</span> <span class="c-num">300</span><span class="c-op">:</span>  <span class="c-comment"># 秒</span></div>
+          <div>  <span class="c-var">loss</span> <span class="c-op">=</span> <span class="c-fn">train_step</span><span class="c-op">()</span></div>
+          <div>  <span class="c-fn">log</span><span class="c-op">(</span><span class="c-var">loss</span><span class="c-op">)</span></div>
+          <div>&nbsp;</div>
+          <div><span class="c-comment"># ── 评估指标 ──</span></div>
+          <div><span class="c-var">val_bpb</span> <span class="c-op">=</span> <span class="c-fn">evaluate</span><span class="c-op">()</span>  <span class="c-comment"># 越低越好</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICKSTART -->
+<section id="quickstart">
+  <div class="section-inner">
+    <div class="section-label">快速开始</div>
+    <h2 class="section-title reveal">五步启动自主研究</h2>
+    <p class="section-desc reveal">需要：单块 NVIDIA GPU（已在 H100 上测试）、Python 3.10+、uv 包管理器。</p>
+
+    <div class="quickstart-steps">
+      <div class="qs-step reveal">
+        <div class="qs-header">
+          <span class="qs-num">1</span>
+          <h3>安装 uv 包管理器</h3>
+        </div>
+        <div class="qs-body">
+          <p>如果尚未安装 uv，运行以下命令：</p>
+          <div class="code-block">
+            <span class="prompt">$ </span>curl -LsSf https://astral.sh/uv/install.sh | sh
+          </div>
+        </div>
+      </div>
+
+      <div class="qs-step reveal">
+        <div class="qs-header">
+          <span class="qs-num">2</span>
+          <h3>克隆并安装依赖</h3>
+        </div>
+        <div class="qs-body">
+          <p>克隆仓库并同步所有依赖：</p>
+          <div class="code-block">
+            <span class="prompt">$ </span>git clone https://github.com/karpathy/autoresearch<br>
+            <span class="prompt">$ </span>cd autoresearch && uv sync
+          </div>
+        </div>
+      </div>
+
+      <div class="qs-step reveal">
+        <div class="qs-header">
+          <span class="qs-num">3</span>
+          <h3>准备数据（一次性）</h3>
+        </div>
+        <div class="qs-body">
+          <p>下载训练数据并训练 BPE 分词器，约需 2 分钟：</p>
+          <div class="code-block">
+            <span class="prompt">$ </span>uv run prepare.py<br>
+            <span class="comment"># 下载数据集 + 训练分词器</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qs-step reveal">
+        <div class="qs-header">
+          <span class="qs-num">4</span>
+          <h3>手动验证训练</h3>
+        </div>
+        <div class="qs-body">
+          <p>先手动运行一次训练实验（约5分钟），确认环境正常：</p>
+          <div class="code-block">
+            <span class="prompt">$ </span>uv run train.py<br>
+            <span class="comment"># 验证 GPU 和训练流程正常</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qs-step reveal" style="grid-column: 1 / -1;">
+        <div class="qs-header">
+          <span class="qs-num">5</span>
+          <h3>启动自主研究模式</h3>
+        </div>
+        <div class="qs-body">
+          <p>在仓库目录中启动你的 Claude / Codex 或其他 AI 智能体（禁用所有权限），然后发送以下提示词：</p>
+          <div class="code-block" style="background: rgba(0,255,136,0.04); border-color: rgba(0,255,136,0.2);">
+            Hi, have a look at program.md and let's kick off a new experiment! let's do the setup first.<br>
+            <span class="comment"># 中文版：查看 program.md，开始一个新实验！先做好准备工作。</span>
+          </div>
+          <p style="margin-top: 0.75rem; color: var(--green); font-size: 0.8rem;">💡 <code style="font-family:var(--mono)">program.md</code> 本质上是一个超轻量级的"技能"文件，你可以随时迭代优化它。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUOTE -->
+<section class="quote-section">
+  <div class="section-inner">
+    <div class="quote-block reveal">
+      <div class="quote-mark">"</div>
+      <p class="quote-text">
+        曾几何时，前沿 AI 研究由肉体计算机在吃饭、睡觉、娱乐的间隙完成，偶尔通过声波互联的"组会"仪式同步进展。那个时代已经过去。研究现在完全属于自主 AI 智能体群的领域，它们在天空中的计算集群巨构上运行。这个仓库，是一切开始的故事。
+      </p>
+      <div class="quote-author">— @karpathy，2026年3月</div>
+    </div>
+  </div>
+</section>
+
+<!-- FORKS -->
+<section id="forks">
+  <div class="section-inner">
+    <div class="section-label">社区分支</div>
+    <h2 class="section-title reveal">没有 H100？没关系</h2>
+    <p class="section-desc reveal">社区已为各种平台创建了适配分支。选择适合你硬件的版本。</p>
+
+    <div class="forks-grid">
+      <a href="https://github.com/miolini/autoresearch-macos" target="_blank" class="fork-card reveal">
+        <div class="fork-platform">🍎</div>
+        <h4>autoresearch-macos</h4>
+        <p>macOS 适配版本，支持 Apple Silicon</p>
+      </a>
+      <a href="https://github.com/trevin-creator/autoresearch-mlx" target="_blank" class="fork-card reveal">
+        <div class="fork-platform">⚡</div>
+        <h4>autoresearch-mlx</h4>
+        <p>基于 Apple MLX 框架的 macOS 版本</p>
+      </a>
+      <a href="https://github.com/jsegov/autoresearch-win-rtx" target="_blank" class="fork-card reveal">
+        <div class="fork-platform">🪟</div>
+        <h4>autoresearch-win-rtx</h4>
+        <p>Windows + NVIDIA RTX 显卡适配</p>
+      </a>
+      <a href="https://github.com/andyluo7/autoresearch" target="_blank" class="fork-card reveal">
+        <div class="fork-platform">🔴</div>
+        <h4>autoresearch (AMD)</h4>
+        <p>AMD GPU 适配版本</p>
+      </a>
+    </div>
+
+    <div style="margin-top: 2.5rem; padding: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;" class="reveal">
+      <div style="font-family: var(--mono); font-size: 0.78rem; color: var(--green); margin-bottom: 0.75rem;">💡 小型计算平台调优建议</div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+        <div>
+          <div style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem;">使用低熵数据集</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">推荐 TinyStories 数据集，更小的模型也能产生合理结果</div>
+        </div>
+        <div>
+          <div style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem;">降低词表大小</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">从 8192 降至 4096/2048，甚至使用 256 字节级分词器</div>
+        </div>
+        <div>
+          <div style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem;">减小 DEPTH</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">默认 DEPTH=8，可降至 4，大多数变量都是它的函数</div>
+        </div>
+        <div>
+          <div style="font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem;">使用纯局部注意力</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">将 WINDOW_PATTERN 设为 "L"，避免低效的带状注意力</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-bg"></div>
+  <h2>今晚，让 AI 替你做研究</h2>
+  <p>睡前启动，早晨醒来查看100次实验的结果。</p>
+  <div class="cta-actions">
+    <a href="https://github.com/karpathy/autoresearch" target="_blank" class="btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      在 GitHub 上查看
+    </a>
+    <a href="https://x.com/karpathy/status/2029701092347630069" target="_blank" class="btn-secondary">
+      阅读原始推文
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">⬡ <span>AutoResearch</span> — by @karpathy</div>
+  <ul class="footer-links">
+    <li><a href="https://github.com/karpathy/autoresearch" target="_blank">GitHub</a></li>
+    <li><a href="https://github.com/karpathy/nanochat" target="_blank">nanochat</a></li>
+    <li><a href="https://x.com/karpathy/status/2029701092347630069" target="_blank">Twitter</a></li>
+    <li><a href="https://huggingface.co/datasets/karpathy/tinystories-gpt4-clean" target="_blank">TinyStories</a></li>
+  </ul>
+  <div class="footer-copy">MIT License · 中文网站非官方</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+        }, 60);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Stagger siblings
+  document.querySelectorAll('.features-grid, .forks-grid, .quickstart-steps, .metrics').forEach(grid => {
+    grid.querySelectorAll('.reveal').forEach((el, i) => {
+      el.style.transitionDelay = `${i * 80}ms`;
+    });
+  });
+
+  // File item click
+  document.querySelectorAll('.file-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  // Smooth nav highlight
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(section => {
+      if (window.scrollY >= section.offsetTop - 80) {
+        current = section.getAttribute('id');
+      }
+    });
+    navLinks.forEach(link => {
+      link.style.color = link.getAttribute('href') === `#${current}` ? 'var(--text)' : '';
+    });
+  }, { passive: true });
+</script>
+
+</body>
+</html>
